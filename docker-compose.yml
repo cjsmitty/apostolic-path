@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # DynamoDB Local for development (in-memory mode for reliability)
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: apostolic-path-dynamodb
+    ports:
+      - '8000:8000'
+    command: '-jar DynamoDBLocal.jar -sharedDb -inMemory'
+    user: root
+
+  # LocalStack for S3 and other AWS services
+  localstack:
+    image: localstack/localstack:latest
+    container_name: apostolic-path-localstack
+    ports:
+      - '4566:4566'
+    environment:
+      - SERVICES=s3,cognito-idp
+      - DEBUG=1
+      - DATA_DIR=/var/lib/localstack/data
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # DynamoDB Admin UI (optional, for debugging)
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin
+    container_name: apostolic-path-dynamodb-admin
+    ports:
+      - '8001:8001'
+    environment:
+      - DYNAMO_ENDPOINT=http://dynamodb-local:8000
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      - dynamodb-local
+
+volumes:
+  localstack-data:
