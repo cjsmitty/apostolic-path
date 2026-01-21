@@ -45,7 +45,7 @@ export const lessonRoutes = async (app: FastifyInstance) => {
       const lesson = await lessonService.getById(id, churchId);
 
       if (!lesson) {
-        return reply.status(404).send({
+        return reply.code(404).send({
           success: false,
           error: { code: 'LESSON_NOT_FOUND', message: 'Lesson not found' },
         });

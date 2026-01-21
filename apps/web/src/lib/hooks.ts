@@ -18,47 +18,48 @@ import { useAuthStore } from './auth';
 // ============ Church Hooks ============
 
 export function useCurrentChurch() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
   
   return useQuery({
-    queryKey: ['church', 'current'],
+    queryKey: ['church', 'current', user?.id],
     queryFn: async () => {
       const response = await api.get<Church>('/churches/me');
       return response.data;
     },
-    enabled: isAuthenticated && !isLoading,
-    staleTime: Infinity, // Don't refetch automatically
+    enabled: isAuthenticated && !isLoading && !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 min
     retry: false,
   });
 }
 
 export function useChurchStats() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
   
   return useQuery({
-    queryKey: ['church', 'stats'],
+    queryKey: ['church', 'stats', user?.id],
     queryFn: async () => {
       const response = await api.get<ChurchStats>('/churches/me/stats');
       return response.data;
     },
-    enabled: isAuthenticated && !isLoading,
-    staleTime: Infinity,
+    enabled: isAuthenticated && !isLoading && !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
     retry: false,
   });
 }
 
 export function useUserChurches() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
   
   return useQuery({
-    queryKey: ['user', 'churches'],
+    // Include user ID in query key so cache is invalidated when user changes
+    queryKey: ['user', 'churches', user?.id],
     queryFn: async () => {
       const response = await api.get<Church[]>('/auth/me/churches');
       return response.data || [];
     },
-    enabled: isAuthenticated && !isLoading,
-    staleTime: Infinity,
+    enabled: isAuthenticated && !isLoading && !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes - reasonable for church list
     retry: false,
   });
 }

@@ -53,6 +53,13 @@ export const authRoutes = async (app: FastifyInstance) => {
             },
           },
         },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'object', additionalProperties: true },
+          },
+        },
       },
     },
     handler: async (request, reply) => {
@@ -63,7 +70,8 @@ export const authRoutes = async (app: FastifyInstance) => {
         return reply.status(201).send({ success: true, data: result });
       } catch (error) {
         if (error instanceof AuthError) {
-          return reply.status(400).send({
+          reply.code(400);
+          return reply.send({
             success: false,
             error: { code: error.code, message: error.message },
           });
@@ -94,6 +102,20 @@ export const authRoutes = async (app: FastifyInstance) => {
             },
           },
         },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'object', additionalProperties: true },
+          },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'object', additionalProperties: true },
+          },
+        },
       },
     },
     handler: async (request, reply) => {
@@ -105,7 +127,8 @@ export const authRoutes = async (app: FastifyInstance) => {
       } catch (error) {
         if (error instanceof AuthError) {
           const status = error.code === 'INVALID_CREDENTIALS' ? 401 : 400;
-          return reply.status(status).send({
+          reply.code(status);
+          return reply.send({
             success: false,
             error: { code: error.code, message: error.message },
           });
@@ -130,7 +153,7 @@ export const authRoutes = async (app: FastifyInstance) => {
       const user = await authService.getUserByEmail(email);
 
       if (!user) {
-        return reply.status(404).send({
+        return reply.code(404).send({
           success: false,
           error: { code: 'USER_NOT_FOUND', message: 'User not found' },
         });
@@ -165,7 +188,7 @@ export const authRoutes = async (app: FastifyInstance) => {
         return { success: true, message: 'Password changed successfully' };
       } catch (error) {
         if (error instanceof AuthError) {
-          return reply.status(400).send({
+          return reply.code(400).send({
             success: false,
             error: { code: error.code, message: error.message },
           });
@@ -208,6 +231,13 @@ export const authRoutes = async (app: FastifyInstance) => {
             data: { type: 'array', items: { type: 'object', additionalProperties: true } },
           },
         },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'object', additionalProperties: true },
+          },
+        },
       },
     },
     preHandler: [app.authenticate],
@@ -217,7 +247,8 @@ export const authRoutes = async (app: FastifyInstance) => {
       const user = await authService.getUserByEmail(email);
 
       if (!user) {
-        return reply.status(404).send({
+        reply.code(404);
+        return reply.send({
           success: false,
           error: { code: 'USER_NOT_FOUND', message: 'User not found' },
         });
@@ -255,7 +286,7 @@ export const authRoutes = async (app: FastifyInstance) => {
       // Use email lookup since user may be in a different church context
       const user = await authService.getUserByEmail(email);
       if (!user) {
-        return reply.status(404).send({
+        return reply.code(404).send({
           success: false,
           error: { code: 'USER_NOT_FOUND', message: 'User not found' },
         });
@@ -267,7 +298,7 @@ export const authRoutes = async (app: FastifyInstance) => {
         : (user.churchIds || [user.churchId]);
 
       if (allowedChurchIds && !allowedChurchIds.includes(targetChurchId)) {
-        return reply.status(403).send({
+        return reply.code(403).send({
           success: false,
           error: { code: 'ACCESS_DENIED', message: 'You do not have access to this church' },
         });

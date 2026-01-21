@@ -5,7 +5,7 @@ import type {
     PaginatedResult,
     Student,
 } from '@apostolic-path/shared';
-import { GetCommand, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, PutCommand, QueryCommand, QueryCommandInput, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { nanoid } from 'nanoid';
 
 /**
@@ -37,7 +37,7 @@ export class StudentRepository {
     const { status, teacherId, limit = 50, cursor } = options;
     const keyPrefix = Keys.prefixes.studentsInChurch(churchId);
 
-    const queryParams: Parameters<typeof QueryCommand>[0] = {
+    const queryParams: QueryCommandInput = {
       TableName: TABLE_NAMES.MAIN,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
       ExpressionAttributeValues: {
@@ -246,10 +246,10 @@ export class StudentRepository {
       for (const step of steps) {
         const progress = student.firstStepsProgress[step as keyof typeof student.firstStepsProgress];
         if (progress?.started) {
-          stepProgress[step].started++;
+          stepProgress[step]!.started++;
         }
         if (progress?.completed) {
-          stepProgress[step].completed++;
+          stepProgress[step]!.completed++;
           studentCompleted++;
         } else {
           allComplete = false;

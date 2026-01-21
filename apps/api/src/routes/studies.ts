@@ -113,7 +113,7 @@ export const studyRoutes = async (app: FastifyInstance) => {
       const study = await studyService.getById(id, churchId);
 
       if (!study) {
-        return reply.status(404).send({
+        return reply.code(404).send({
           success: false,
           error: { code: 'STUDY_NOT_FOUND', message: 'Study not found' },
         });
@@ -121,7 +121,7 @@ export const studyRoutes = async (app: FastifyInstance) => {
 
       // Students can only view their own studies
       if (userRole === 'student' && !study.studentIds?.includes(userId)) {
-        return reply.status(403).send({
+        return reply.code(403).send({
           success: false,
           error: { code: 'ACCESS_DENIED', message: 'You can only view studies you are enrolled in' },
         });
@@ -133,7 +133,7 @@ export const studyRoutes = async (app: FastifyInstance) => {
         study.teacherId !== userId &&
         !hasPermission(userRole, 'study:list')
       ) {
-        return reply.status(403).send({
+        return reply.code(403).send({
           success: false,
           error: { code: 'ACCESS_DENIED', message: 'You can only view studies you are leading' },
         });
@@ -163,7 +163,7 @@ export const studyRoutes = async (app: FastifyInstance) => {
       if (userRole === 'teacher') {
         const existingStudy = await studyService.getById(id, churchId);
         if (existingStudy && existingStudy.teacherId !== userId) {
-          return reply.status(403).send({
+          return reply.code(403).send({
             success: false,
             error: { code: 'ACCESS_DENIED', message: 'You can only update studies you are leading' },
           });
@@ -202,7 +202,7 @@ export const studyRoutes = async (app: FastifyInstance) => {
       if (userRole === 'teacher') {
         const existingStudy = await studyService.getById(id, churchId);
         if (existingStudy && existingStudy.teacherId !== userId) {
-          return reply.status(403).send({
+          return reply.code(403).send({
             success: false,
             error: { code: 'ACCESS_DENIED', message: 'You can only update studies you are leading' },
           });

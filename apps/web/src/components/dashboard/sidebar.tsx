@@ -20,6 +20,7 @@ import {
 import { useAuthStore } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import type { UserRole } from '@apostolic-path/shared';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     BarChart3,
     BookOpen,
@@ -158,6 +159,7 @@ function shouldShowNavItem(item: NavItem, role: UserRole | null): boolean {
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, logout } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
   
@@ -165,6 +167,8 @@ export function Sidebar() {
   const isPlatformAdmin = useIsPlatformAdmin();
 
   const handleLogout = () => {
+    // Clear all cached queries to prevent stale data for next user
+    queryClient.clear();
     logout();
     router.push('/login');
   };
@@ -206,7 +210,10 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-2">
           {visibleNavigation.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            // For /dashboard, only match exact path to avoid highlighting when on child routes
+            const isActive = item.href === '/dashboard' 
+              ? pathname === '/dashboard'
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <li key={item.name}>
                 <Link
