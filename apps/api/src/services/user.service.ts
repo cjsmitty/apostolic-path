@@ -8,8 +8,8 @@ export class UserService {
     this.repository = new UserRepository();
   }
 
-  async getById(userId: string): Promise<User | null> {
-    return this.repository.findById(userId);
+  async getById(userId: string, churchId: string): Promise<User | null> {
+    return this.repository.findById(userId, churchId);
   }
 
   async listByChurch(

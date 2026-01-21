@@ -12,12 +12,12 @@
   },
   "dependencies": {
     "@apostolic-path/shared": "workspace:*",
-    "@aws-sdk/client-dynamodb": "^3.500.0",
-    "@aws-sdk/lib-dynamodb": "^3.500.0"
+    "@aws-sdk/client-dynamodb": "^3.972.0",
+    "@aws-sdk/lib-dynamodb": "^3.972.0"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.7.0"
   }
 }

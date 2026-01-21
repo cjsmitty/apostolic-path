@@ -28,7 +28,8 @@ export const userRoutes = async (app: FastifyInstance) => {
     preHandler: [app.authenticate],
     handler: async (request, reply) => {
       const userId = request.user.userId;
-      const user = await userService.getById(userId);
+      const churchId = request.churchContext.churchId;
+      const user = await userService.getById(userId, churchId);
 
       return { success: true, data: user };
     },
@@ -80,7 +81,7 @@ export const userRoutes = async (app: FastifyInstance) => {
 
       // Check if current user can assign the requested role
       if (!canAssignRole(currentUserRole, data.role as UserRole)) {
-        return reply.status(403).send({
+        return reply.code(403).send({
           success: false,
           error: {
             code: 'INSUFFICIENT_PERMISSIONS',
@@ -114,10 +115,10 @@ export const userRoutes = async (app: FastifyInstance) => {
       const { id } = request.params as { id: string };
       const churchId = request.churchContext.churchId;
 
-      const user = await userService.getById(id);
+      const user = await userService.getById(id, churchId);
 
       if (!user || user.churchId !== churchId) {
-        return reply.status(404).send({
+        return reply.code(404).send({
           success: false,
           error: { code: 'USER_NOT_FOUND', message: 'User not found' },
         });
@@ -151,7 +152,7 @@ export const userRoutes = async (app: FastifyInstance) => {
 
       // If role is being updated, check if current user can assign the new role
       if (data.role && !canAssignRole(currentUserRole, data.role as UserRole)) {
-        return reply.status(403).send({
+        return reply.code(403).send({
           success: false,
           error: {
             code: 'INSUFFICIENT_PERMISSIONS',

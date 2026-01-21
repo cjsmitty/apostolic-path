@@ -1,5 +1,6 @@
 import type { Permission, UserRole } from '@apostolic-path/shared';
 import { hasPermission, isPlatformAdmin } from '@apostolic-path/shared';
+import fastifyJwt from '@fastify/jwt';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { config } from '../config/index.js';
@@ -40,7 +41,7 @@ declare module 'fastify' {
 
 export const authPlugin = fp(async (app: FastifyInstance) => {
   // Register JWT plugin
-  await app.register(import('@fastify/jwt'), {
+  await app.register(fastifyJwt, {
     secret: config.jwt.secret,
   });
 

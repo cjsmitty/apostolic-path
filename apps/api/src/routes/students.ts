@@ -20,7 +20,8 @@ const newBirthStatusSchema = z.object({
 
 const createStudentSchema = z.object({
   userId: z.string(),
-  assignedTeacherId: z.string().optional(),
+  assignedTeacherId: z.string().optional(), // Optional in schema, but enforced in handler (auto-assigned for teachers)
+  startDate: z.string().datetime().default(() => new Date().toISOString()),
   notes: z.string().optional(),
 });
 
@@ -102,11 +103,53 @@ export const studentRoutes = async (app: FastifyInstance) => {
     preHandler: [app.authenticate, app.requirePermission('student:create')],
     handler: async (request, reply) => {
       const churchId = request.churchContext.churchId;
+      const userRole = request.user.role as UserRole;
+      const userId = request.user.userId;
       const data = createStudentSchema.parse(request.body);
+
+      // Teachers can only assign students to themselves
+      // They cannot assign to other teachers
+      if (userRole === 'teacher') {
+        if (data.assignedTeacherId && data.assignedTeacherId !== userId) {
+          return reply.code(403).send({
+            success: false,
+            error: {
+              code: 'FORBIDDEN',
+              message: 'Teachers can only assign students to themselves',
+            },
+          });
+        }
+        // Auto-assign to the creating teacher
+        data.assignedTeacherId = userId;
+      }
+
+      // For non-teachers, validate they have permission to assign teachers
+      if (userRole !== 'teacher') {
+        if (!hasPermission(userRole, 'student:assign-teacher')) {
+          return reply.code(403).send({
+            success: false,
+            error: {
+              code: 'FORBIDDEN',
+              message: 'You do not have permission to assign teachers to students',
+            },
+          });
+        }
+        
+        // Pastors/Admins must provide a teacher
+        if (!data.assignedTeacherId) {
+          return reply.code(400).send({
+            success: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'A teacher must be assigned to every student',
+            },
+          });
+        }
+      }
 
       const student = await studentService.create({ ...data, churchId });
 
-      return reply.status(201).send({ success: true, data: student });
+      return reply.code(201).send({ success: true, data: student });
     },
   });
 
@@ -127,7 +170,7 @@ export const studentRoutes = async (app: FastifyInstance) => {
       const student = await studentService.getById(id, churchId);
 
       if (!student) {
-        return reply.status(404).send({
+        return reply.code(404).send({
           success: false,
           error: { code: 'STUDENT_NOT_FOUND', message: 'Student record not found' },
         });
@@ -135,7 +178,7 @@ export const studentRoutes = async (app: FastifyInstance) => {
 
       // Students can only view their own record
       if (userRole === 'student' && student.userId !== userId) {
-        return reply.status(403).send({
+        return reply.code(403).send({
           success: false,
           error: { code: 'ACCESS_DENIED', message: 'You can only view your own student record' },
         });
@@ -147,7 +190,7 @@ export const studentRoutes = async (app: FastifyInstance) => {
         student.assignedTeacherId !== userId &&
         !hasPermission(userRole, 'student:list')
       ) {
-        return reply.status(403).send({
+        return reply.code(403).send({
           success: false,
           error: { code: 'ACCESS_DENIED', message: 'You can only view students assigned to you' },
         });
@@ -177,14 +220,14 @@ export const studentRoutes = async (app: FastifyInstance) => {
       if (userRole === 'teacher') {
         const student = await studentService.getById(id, churchId);
         if (student && student.assignedTeacherId !== userId) {
-          return reply.status(403).send({
+          return reply.code(403).send({
             success: false,
             error: { code: 'ACCESS_DENIED', message: 'You can only update students assigned to you' },
           });
         }
       }
 
-      const student = await studentService.update(id, churchId, data);
+      const student = await studentService.update(id, churchId, data as Parameters<typeof studentService.update>[2]);
 
       return { success: true, data: student };
     },
@@ -210,7 +253,7 @@ export const studentRoutes = async (app: FastifyInstance) => {
       if (userRole === 'teacher') {
         const student = await studentService.getById(id, churchId);
         if (student && student.assignedTeacherId !== userId) {
-          return reply.status(403).send({
+          return reply.code(403).send({
             success: false,
             error: { code: 'ACCESS_DENIED', message: 'You can only update students assigned to you' },
           });
@@ -284,7 +327,7 @@ export const studentRoutes = async (app: FastifyInstance) => {
       if (userRole === 'teacher') {
         const student = await studentService.getById(id, churchId);
         if (student && student.assignedTeacherId !== userId) {
-          return reply.status(403).send({
+          return reply.code(403).send({
             success: false,
             error: { code: 'ACCESS_DENIED', message: 'You can only update students assigned to you' },
           });

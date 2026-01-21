@@ -38,6 +38,13 @@ export const churchRoutes = async (app: FastifyInstance) => {
             data: { type: 'object', additionalProperties: true },
           },
         },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'object', additionalProperties: true },
+          },
+        },
       },
     },
     preHandler: [app.authenticate],
@@ -66,7 +73,8 @@ export const churchRoutes = async (app: FastifyInstance) => {
 
       if (!result.Item || !result.Item.id) {
         console.log('No item found or no id - returning 404');
-        return reply.status(404).send({
+        reply.code(404);
+        return reply.send({
           success: false,
           error: { 
             code: 'CHURCH_NOT_FOUND', 
