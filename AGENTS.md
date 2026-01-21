@@ -187,6 +187,20 @@ interface StepProgress {
 
 ---
 
+## Current Backend Implementation (Jan 2026)
+
+- Fastify app lives in apps/api (see src/index.ts); security plugins (helmet, cors, rate-limit) and Swagger UI are enabled at `/docs`; a public health probe is exposed at `/health`.
+- Plugins: `authPlugin` (JWT auth with `config.jwt.secret`, role/permission decorators, platform-admin helpers), `churchContextPlugin` (sets `request.churchContext` from JWT), `permissionsPlugin` (resource access helpers), and a Zod-aware `errorHandler`.
+- Auth: local email/password with bcrypt (12 rounds) and 7d JWTs; endpoints include `/api/v1/auth/register`, `/login`, `/me`, `/change-password`, `/verify`, `/me/churches`, and `/switch-church` (issues a new JWT for the target church if allowed). Cognito IDs are optional envs—JWT secrets power local auth today.
+- Multi-tenant enforcement: routes read `request.churchContext.churchId` set during auth; permission checks use the shared RBAC matrix in packages/shared (roles: platform_admin > admin > pastor > teacher > member > student).
+- Domain routes implemented: churches (`/me`, `/me/stats`, update), users (list/create/update/get within church, role assignment guard), students (list with role scoping, create, update, milestones, First Steps stats/updates), studies (list with role scoping, create, read, update, status, by-student), lessons (by study, read, update/complete/add note).
+- Curriculum seeding: standard lesson templates defined in `apps/api/src/data/curriculums.ts` and instantiated when a study is created.
+- Data layer: single DynamoDB table `${DYNAMODB_TABLE_PREFIX}-main` with key helpers (Keys.church/user/student/study/lesson) and GSIs for cross-entity/email lookups (`packages/database/src/tables.ts`). Dynamo client honors `DYNAMODB_ENDPOINT` for local dev.
+- Services map 1:1 to repositories and update `updatedAt` timestamps; creation paths set default New Birth + First Steps scaffolding for students and create curriculum lessons for studies.
+- Defaults from config: `PORT=3001`, `HOST=0.0.0.0`, `AWS_REGION=us-east-1`, `DYNAMODB_TABLE_PREFIX=apostolic-path`, `S3_BUCKET=apostolic-path-uploads`, `JWT_SECRET=dev-secret-change-in-production`.
+
+---
+
 ## Authentication & Authorization
 
 ### Cognito User Pools
@@ -233,6 +247,20 @@ app/
     ├── page.tsx             # Landing page
     └── pricing/page.tsx     # Pricing page
 ```
+
+  ### Current Frontend Implementation (Jan 2026)
+  - App Router with role-gated dashboard layout (`apps/web/src/app/(dashboard)/layout.tsx`) that checks auth via Zustand store and redirects to `/login`; uses shared shell (sidebar + header).
+  - Providers: React Query + Theme (light/dark) + Toasts wired in `apps/web/src/components/providers.tsx` with sensible defaults (1 min stale, single retry).
+  - Auth client: Zustand store in `apps/web/src/lib/auth.ts` persists JWT token (localStorage), wraps `/auth/login` and `checkAuth` via `/auth/me` + optional `/churches/me`; stores church context; logout clears token + query cache. `api.ts` wraps fetch with base URL `NEXT_PUBLIC_API_URL` and attaches bearer token.
+  - Permissions: client hooks re-export shared RBAC helpers (`apps/web/src/lib/permissions.ts`, `apps/web/src/hooks/use-permissions.ts`), used for nav visibility and role-based UI.
+  - Data fetching: React Query hooks in `apps/web/src/lib/hooks.ts` map 1:1 to API routes (church stats, students, studies, lessons, switch-church, etc.) and invalidate caches on mutations.
+  - Dashboard UX: role-routed dashboards (`apps/web/src/app/(dashboard)/dashboard/page.tsx`) render Manager (pastor/admin), Teacher, Student/Member variants; sidebar/header support church switching (platform admins can switch via `/auth/switch-church`).
+  - UI: shadcn components (button/card/badge/toast) + lucide icons; sidebar nav is role-filtered (students see self-service items, pastors/admins get reports/settings, platform admins see system admin links).
+
+  ### Known Gaps / TODOs
+  - Student dashboard currently uses mock data (no API wiring yet) and self-progress routes like `/dashboard/my-progress` are not implemented.
+  - Teacher dashboard filters assigned students client-side; API should provide teacher-scoped list to avoid over-fetching.
+  - Several dashboard subpages (students/studies detail flows, settings/admin pages) are not present or stubbed; routing map above is the intent, but many pages are not yet built.
 
 ### State Management
 - **Server State**: TanStack Query (React Query) for API data
